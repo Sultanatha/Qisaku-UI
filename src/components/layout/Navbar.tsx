@@ -19,7 +19,7 @@ const Navbar = () => {
           .find((row) => row.startsWith("token="))
           ?.split("=")[1];
 
-        console.log("Token from cookie:", token);
+        // console.log("Token from cookie:", token);
 
         if (token) {
           // Verifikasi token ke backend
@@ -33,12 +33,12 @@ const Navbar = () => {
           const data = await res.json();
 
           if (data.success) {
-            console.log(
-              "User Name:",
-              data.user.user_name,
-              "User Role:",
-              data.user.roles[0]
-            );
+            // console.log(
+            //   "User Name:",
+            //   data.user.user_name,
+            //   "User Role:",
+            //   data.user.roles[0]
+            // );
             setUserName(data.user.user_name);
             setUserRole(data.user.roles[0]);
           } else {

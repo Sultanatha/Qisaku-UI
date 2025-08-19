@@ -2,17 +2,35 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
 console.log("BASE_URL:", BASE_URL);
 export const login = async (email: string, password: string) => {
   const res = await fetch(`${BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_email: email,
-          user_password: password,
-        }),
-      });
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      user_email: email,
+      user_password: password,
+    }),
+  });
 
-  const data = await res.json(); 
+  // Handle rate limiting
+  if (res.status === 429) {
+    throw new Error('Too many requests. Please wait and try again.');
+  }
+
+  // Check if response is JSON
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    throw new Error(`Server returned non-JSON response: ${text}`);
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (jsonError) {
+    const text = await res.text();
+    throw new Error(`Invalid JSON response: ${text}`);
+  }
 
   if (!res.ok) {
     throw new Error(data.message || "Login gagal");
@@ -54,16 +72,16 @@ export const getTokenFromCookies = (): string | null => {
     .split("; ")
     .find((row) => row.startsWith("token="))
     ?.split("=")[1];
-    console.log("document.cookie:", document.cookie); // Tambah ini
-    console.log("Parsed token:", token);             // Dan ini
+    // console.log("document.cookie:", document.cookie); // Tambah ini
+    // console.log("Parsed token:", token);             // Dan ini
   return token || null;
 }
 
 export const verifyToken = async (token?: string): Promise<boolean> => {
-  console.log("[verifyToken] dipanggil");
+  // console.log("[verifyToken] dipanggil");
 
   const authToken = token || getTokenFromCookies();
-  console.log("[verifyToken] token yang digunakan:", authToken);
+  // console.log("[verifyToken] token yang digunakan:", authToken);
 
   if (!authToken) return false;
 
@@ -76,7 +94,7 @@ export const verifyToken = async (token?: string): Promise<boolean> => {
       credentials: "include",
     });
 
-    console.log("[verifyToken] status:", res.status);
+    // console.log("[verifyToken] status:", res.status);
     return res.ok;
   } catch (err) {
     console.error("[verifyToken] error:", err);

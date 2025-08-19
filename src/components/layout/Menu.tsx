@@ -5,8 +5,8 @@ import { role } from "@/lib/utils/data/data";
 import { logout } from "@/lib/utils/services/auth";
 import * as Icons from "lucide-react";
 import { api } from "@/lib/utils/services/api";
+import { usePathname } from "next/navigation"; // ✅ untuk highlight menu aktif
 
-// Interface untuk API response
 interface ApiMenuItem {
   menus_id: number;
   menus_name: string;
@@ -34,34 +34,36 @@ interface MenuItem {
 }
 
 interface MenuSection {
+  id: number;
   title: string;
+  icon: string; // ✅ tambahkan icon parent
   items: MenuItem[];
 }
 
-// Fungsi untuk mendapatkan icon component berdasarkan nama string
 const getIconComponent = (iconName: string) => {
   const IconComponent = (Icons as any)[iconName];
   return IconComponent || Icons.HelpCircle;
 };
 
-// Transform API data ke format yang dibutuhkan komponen
 const transformApiData = (apiData: ApiMenuItem[]): MenuSection[] => {
   const parentMenus = apiData.filter((item) => item.menus_parent_id === null);
   const childMenus = apiData.filter((item) => item.menus_parent_id !== null);
 
   if (parentMenus.length > 0) {
     return parentMenus.map((parent) => ({
-      title: parent.menus_name.toUpperCase(),
+      id: parent.menus_id,
+      title: parent.menus_name,
+      icon: parent.menus_icon, // ✅ simpan icon parent
       items: childMenus
         .filter((child) => child.menus_parent_id === parent.menus_id)
-        .filter((child) => child.menus_stat) // Hanya yang aktif
+        .filter((child) => child.menus_stat)
         .map((child) => ({
           icon: child.menus_icon,
           label: child.menus_name,
           href: child.menus_path,
           action:
             child.menus_name.toLowerCase() === "logout" ? "logout" : undefined,
-          visible: ["admin", "teacher", "student", "parent"], // Default visibility
+          visible: ["admin", "teacher", "student", "parent"],
         }))
         .sort((a, b) => {
           const orderA =
@@ -75,7 +77,9 @@ const transformApiData = (apiData: ApiMenuItem[]): MenuSection[] => {
 
   return [
     {
+      id: 0,
       title: "MENU",
+      icon: "Folder", // fallback default
       items: apiData
         .filter((item) => item.menus_stat)
         .map((item) => ({
@@ -101,8 +105,9 @@ const Menu = () => {
   const [menuItems, setMenuItems] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<number[]>([]);
+  const pathname = usePathname();
 
-  // Fetch menu data dari API
   useEffect(() => {
     const fetchMenuData = async () => {
       try {
@@ -152,15 +157,21 @@ const Menu = () => {
     }
   };
 
+  const toggleSection = (id: number) => {
+    setOpenSections((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
   if (loading) {
     return (
-      <div className="mt-4 text-sm">
+      <div className="mt-4 text-sm text-gray-300">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2 mb-4"></div>
           <div className="space-y-2">
-            <div className="h-8 bg-gray-200 rounded"></div>
-            <div className="h-8 bg-gray-200 rounded"></div>
-            <div className="h-8 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-700 rounded"></div>
+            <div className="h-8 bg-gray-700 rounded"></div>
+            <div className="h-8 bg-gray-700 rounded"></div>
           </div>
         </div>
       </div>
@@ -169,63 +180,98 @@ const Menu = () => {
 
   if (error && menuItems.length === 0) {
     return (
-      <div className="mt-4 text-sm">
-        <div className="text-red-500 text-xs mb-2">
-          Failed to load menu: {error}
-        </div>
-        <div className="text-gray-500 text-xs">Using fallback menu...</div>
+      <div className="mt-4 text-sm text-red-400">
+        Failed to load menu: {error}
       </div>
     );
   }
 
   return (
-    <div className="mt-4 text-sm">
-      {menuItems && menuItems.length > 0 ? (
-        menuItems.map((section, sectionIndex) => (
-          <div
-            className="flex flex-col gap-2"
-            key={section.title || `section-${sectionIndex}`}
-          >
-            <span className="hidden lg:block text-gray-400 font-light my-4">
-              {section.title}
-            </span>
-            {section.items && section.items.length > 0 ? (
-              section.items.map((item, itemIndex) => {
-                // Check visibility
-                if (!item.visible || !item.visible.includes(role)) {
-                  return null;
-                }
+    <div className="mt-4 text-sm text-gray-300">
+      {menuItems.length > 0 ? (
+        menuItems.map((section) => {
+          const isOpen = openSections.includes(section.id);
 
-                const IconComponent = getIconComponent(item.icon);
-                const key = `${item.label}-${itemIndex}`;
+          return (
+            <div key={section.id} className="flex flex-col gap-2">
+              {/* Parent */}
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  {/* Icon parent */}
+                  {(() => {
+                    const IconComp = getIconComponent(section.icon);
+                    return <IconComp size={18} />;
+                  })()}
 
-                return item.action ? (
-                  <button
-                    key={key}
-                    onClick={() => handleAction(item.action!)}
-                    className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight w-full text-left"
-                  >
-                    <IconComponent size={20} />
-                    <span className="hidden lg:block">{item.label}</span>
-                  </button>
+                  {/* Label parent → hidden di layar kecil */}
+                  <span className="font-medium uppercase tracking-wide hidden md:inline">
+                    {section.title}
+                  </span>
+                </div>
+
+                {/* Chevron toggle */}
+                {isOpen ? (
+                  <Icons.ChevronUp size={16} />
                 ) : (
-                  <Link
-                    href={item.href || "/"}
-                    key={key}
-                    className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
-                  >
-                    <IconComponent size={20} />
-                    <span className="hidden lg:block">{item.label}</span>
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="text-gray-400 text-xs">No menu items</div>
-            )}
-          </div>
-        ))
+                  <Icons.ChevronDown size={16} />
+                )}
+              </button>
+
+              {/* Child menu */}
+              {isOpen && (
+                <div className="ml-4 flex flex-col gap-1">
+                  {section.items.length > 0 ? (
+                    section.items.map((item, idx) => {
+                      if (!item.visible || !item.visible.includes(role)) {
+                        return null;
+                      }
+
+                      const IconComponent = getIconComponent(item.icon);
+                      const isActive = pathname === item.href;
+
+                      return item.action ? (
+                        <button
+                          key={idx}
+                          onClick={() => handleAction(item.action!)}
+                          className={`flex items-center gap-3 py-2 px-3 rounded-md transition-all ${
+                            isActive
+                              ? "bg-indigo-600 text-white"
+                              : "text-gray-700 hover:bg-gray-100 hover:text-white"
+                          }`}
+                        >
+                          <IconComponent size={18} />
+                          <span>{item.label}</span>
+                        </button>
+                      ) : (
+                        <Link
+                          key={idx}
+                          href={item.href || "/"}
+                          className={`flex items-center gap-3 py-2 px-3 rounded-md transition-all ${
+                            isActive
+                              ? "bg-indigo-600 text-white"
+                              : "text-gray-700 hover:bg-gray-100 hover:text-white"
+                          }`}
+                        >
+                          <IconComponent size={18} />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <div className="text-gray-500 text-xs ml-2">
+                      No menu items
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })
       ) : (
-        <div className="text-gray-400 text-xs">No menu available</div>
+        <div className="text-gray-500 text-xs">No menu available</div>
       )}
     </div>
   );

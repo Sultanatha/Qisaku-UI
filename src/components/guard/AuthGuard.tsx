@@ -40,7 +40,7 @@ export default function AuthGuard({
         // Validasi token dengan API
         const response = await api.get("/auth/verify-token");
 
-        console.log("✅ Token valid");
+        // console.log("✅ Token valid");
         setIsAuthenticated(true);
       } catch (error) {
         console.error("❌ Token invalid:", error);

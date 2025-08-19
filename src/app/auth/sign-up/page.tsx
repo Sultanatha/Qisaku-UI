@@ -13,9 +13,12 @@ const RegistrationPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
-  interface ApiMessageResponse extends ApiResponse<null> {
+  interface ApiMessageResponse {
+    success: boolean;
     message: string;
+    data?: any;
   }
+
   const isFormValid = name && email && isPasswordValid;
 
   const handleRegistration = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +38,7 @@ const RegistrationPage = () => {
           user_password: password,
         }
       );
-      if (res) {
+      if (res.success) {
         toast.success(res.message, {
           position: "top-right",
           autoClose: 5000,

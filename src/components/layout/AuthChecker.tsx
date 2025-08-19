@@ -16,7 +16,7 @@ export default function AuthChecker({
     const check = async () => {
       const valid = await verifyToken();
 
-      console.log("Token valid:", valid); // Tambahkan log untuk pastikan ini berjalan
+      // console.log("Token valid:", valid); // Tambahkan log untuk pastikan ini berjalan
 
       if (
         !valid &&

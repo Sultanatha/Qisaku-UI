@@ -1,16 +1,63 @@
-import Image from 'next/image'
+"use client";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  Package,
+} from "lucide-react";
 
-const UserCard = ({type} : {type: string}) => {
-  return (
-    <div className='rounded-2xl odd:bg-lamaPurple even:bg-lamaYellow p-4 flex-1 min-w-[130px]'>
-        <div className="flex justify-between items-center">
-            <span className='text-[10px] bg-white py-1 px-2 rounded-full text-green-600'>2025/29</span>
-            <Image src="/more.png" alt="" width={20} height={20}/>
-        </div>
-        <h1 className='text-2xl font-semibold my-4'>1,289</h1>
-        <h2 className='capitalize text-sm font-medium text-gray-500'>{type}</h2>
-    </div>
-  )
+interface StatCardProps {
+  title: string;
+  value: number | string;
+  unit?: string;
+  trend: number;
+  trendType: "up" | "down";
+  icon?: "package" | "alert" | "money" | "stock";
+  color?: string;
 }
 
-export default UserCard
+const icons = {
+  package: <Package className="w-6 h-6" />,
+  alert: <AlertTriangle className="w-6 h-6" />,
+  money: <span className="text-lg font-bold">Rp</span>,
+  stock: <Package className="w-6 h-6" />,
+};
+
+const UserCard = ({
+  title,
+  value,
+  unit,
+  trend,
+  trendType,
+  icon = "package",
+  color = "bg-blue-500",
+}: StatCardProps) => {
+  return (
+    <div className="rounded-2xl bg-white p-6 flex-1 min-w-[250px] shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+      <div
+        className={`w-12 h-12 flex items-center justify-center rounded-xl ${color} text-white`}
+      >
+        {icons[icon]}
+      </div>
+      <h2 className="text-sm font-medium text-gray-600 mt-4">{title}</h2>
+      <h1 className="text-2xl font-bold text-gray-900 mt-1">
+        {value}{" "}
+        <span className="text-base font-medium text-gray-500">{unit}</span>
+      </h1>
+      <div
+        className={`flex items-center gap-1 text-sm font-medium mt-2 ${
+          trendType === "up" ? "text-green-600" : "text-red-600"
+        }`}
+      >
+        {trendType === "up" ? (
+          <ArrowUpRight className="w-4 h-4" />
+        ) : (
+          <ArrowDownRight className="w-4 h-4" />
+        )}
+        <span>{trend}% dari minggu lalu</span>
+      </div>
+    </div>
+  );
+};
+
+export default UserCard;
